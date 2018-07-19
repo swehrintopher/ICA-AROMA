@@ -1,0 +1,251 @@
+#!/usr/bin/env python
+
+from __future__ import print_function, division
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+import seaborn as sns
+
+FNAME = 'component_assessment_plot'
+
+
+def read_files(files):
+    """Read files into DataFrame."""
+
+    columns = [1, 2, 3, 4, 5]
+    colnames = ['Motion', 'RP', 'Edge', 'Freq', 'CSF']
+
+    dfs = [
+        pd.read_csv(
+            file_,
+            delim_whitespace=True, skiprows=1, usecols=columns, names=colnames
+        )
+        for file_ in files
+    ]
+    df = pd.concat(dfs, ignore_index=True)
+
+    dummy_true_df = pd.DataFrame.from_records(
+        [[True, 1.0, 1.0, 0.0, 0.0]] * 3, columns=colnames
+    )
+    dummy_false_df = pd.DataFrame.from_records(
+        [[False, 0.0, 0.0, 0.0, 0.0]] * 3, columns=colnames
+    )
+
+    # Get counts
+    ncomponents, nmotion = len(df), sum(df['Motion'])
+    print(
+        'Found', nmotion,
+        'head motion-related components in a total of', ncomponents,
+        'components.'
+    )
+
+    # Add dummy components if needed - just for making the plots look nice.
+    if not any(df['Motion']):
+        df = df.append(dummy_true_df, ignore_index=True)
+    if not any(~df['Motion']):
+        df = df.append(dummy_false_df, ignore_index=True)
+
+    return df
+
+
+def create_plot(df):
+    """Generate figure with plot."""
+
+    # Pretty figure styling
+    sns.set_style('white')
+    colour_true = '#FFBF17'
+    colour_false = '#69A00A'
+
+    # Figure
+    fig = plt.figure(figsize=[12, 4])
+
+    # Grids
+    gs = GridSpec(4, 7, wspace=1)
+    gs00 = GridSpecFromSubplotSpec(4, 4, subplot_spec=gs[:, 0:3])
+    gs01 = GridSpecFromSubplotSpec(4, 1, subplot_spec=gs[:, 3:5])
+    gs02 = GridSpecFromSubplotSpec(4, 1, subplot_spec=gs[:, 5:7])
+
+    # Subplots
+
+    # Edge/RP
+    ax1 = fig.add_subplot(gs00[1:4, 0:3])
+    # Distribution of Edge Fraction (ax1 top)
+    ax1t = fig.add_subplot(gs00[0, 0:3])
+    # Distribution of RP Correlation (ax1 right)
+    ax1r = fig.add_subplot(gs00[1:4, 3])
+    # High Frequency Content
+    ax2 = fig.add_subplot(gs01[1:4, :])
+    # CSF Fraction
+    ax3 = fig.add_subplot(gs02[1:4, :])
+
+    axs = [ax1, ax1t, ax1r, ax2, ax3]
+
+    #
+    # Plot 1: Edge/RP relationship
+    #
+
+    # Decision boundary (Projection line)
+    hyp = [-19.9751070082159, 9.95127547670627, 24.8333160239175]
+    a = -hyp[1] / hyp[2]
+    xx = np.linspace(0, 1)
+    yy = a * xx - hyp[0] / hyp[2]
+    ax1.plot(xx, yy, '.', color='k', markersize=1)
+
+    ax1.set_ylim([0, 1])
+    ax1.set_xlim([0, 1])
+    ax1.set_xlabel('Maximum RP Correlation', fontsize=14, labelpad=10)
+    ax1.set_ylabel('Edge Fraction', fontsize=14)
+    ax1.set_xticks(np.arange(0, 1.2, 0.2))
+    ax1.set_yticks(np.arange(0, 1.2, 0.2))
+    ax1.tick_params(axis='both', labelsize=12)
+
+    # Scatter plots for True/False, Shows how much they go over the boundary,
+    # giving indication of how many were selected using the other two features.
+    marker_size = 10 if len(df) <= 100 else 6
+    ax1.scatter(
+        x='RP', y='Edge', data=df.loc[~df['Motion']],
+        color=colour_false, s=marker_size
+    )
+    ax1.scatter(
+        x='RP', y='Edge', data=df.loc[df['Motion']],
+        color=colour_true, s=marker_size
+    )
+
+    # RP distribution
+    sns.distplot(
+        df.loc[df['Motion'], 'RP'],
+        ax=ax1t, color=colour_true, hist_kws={'alpha': 0.2}
+    )
+    sns.distplot(
+        df.loc[~df['Motion'], 'RP'],
+        ax=ax1t, color=colour_false, hist_kws={'alpha': 0.2}
+    )
+    ax1t.set_xlim([0, 1])
+
+    # Edge Fraction distribution
+    sns.distplot(
+        df.loc[df['Motion'], 'Edge'],
+        ax=ax1r, vertical=True, color=colour_true, hist_kws={'alpha': 0.2}
+    )
+    sns.distplot(
+        df.loc[~df['Motion'], 'Edge'],
+        ax=ax1r, vertical=True, color=colour_false, hist_kws={'alpha': 0.2}
+    )
+    ax1r.set_ylim([0, 1])
+
+    # Cosmetic settings for both distribution plots
+    for ax in [ax1t, ax1r]:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        for side in ['right', 'top', 'bottom', 'left']:
+            ax.spines[side].set_visible(False)
+
+    #
+    # Plot 2: HF Fraction Classifier
+    #
+    sns.boxplot(
+        x='Motion', y='Freq', data=df,
+        ax=ax2, palette=[colour_true, colour_false]
+    )
+    ax2.hlines(0.35, -1, 2, zorder=0, linestyles='dotted', linewidth=0.5)
+    ax2.set_ylim([0, 1])
+    ax2.set_xlabel('Classification', fontsize=14, labelpad=10)
+    ax2.set_ylabel('High-Frequency Content', fontsize=14)
+    ax2.set_xticklabels(['Motion', 'Other'])
+    ax2.tick_params(axis='both', labelsize=12)
+    sns.despine(ax=ax2)
+
+    #
+    # Plot 3: CSF Fraction Classifier
+    #
+    sns.boxplot(
+        x='Motion', y='CSF', data=df,
+        ax=ax3, palette=[colour_true, colour_false]
+    )
+    ax3.hlines(0.1, -1, 2, zorder=0, linestyles='dotted', linewidth=0.5)
+    ax3.set_ylim([0, 1])
+    ax3.set_xlabel('Classification', fontsize=14, labelpad=10)
+    ax3.set_ylabel('CSF Fraction', fontsize=14)
+    ax3.set_xticklabels(['Motion', 'Other'])
+    ax3.tick_params(axis='both', labelsize=12)
+    sns.despine(ax=ax3)
+
+    # Bring tickmarks back on all plots
+    for ax in axs:
+        ax.tick_params(which='major', direction='in', length=3)
+
+    fig.suptitle('Component Assessment', fontsize=20)
+
+    return fig
+
+
+def classification_plot(infiles, outfile, file_format):
+    """Produce plot from files and display interactively or save as pdf."""
+    show = outfile is None
+
+    df = read_files(infiles)
+    fig = create_plot(df)
+    if show:
+        fig.canvas.set_window_title('ICA-AROMA')
+        plt.show()
+    else:
+        # Explicit format as may be passed open file object rather than name
+        fig.savefig(outfile, format=file_format, bbox_inches='tight')
+
+
+if __name__ == '__main__':
+    from argparse import ArgumentParser, FileType
+    from os.path import join
+
+    description = "Classification overview plot similar to that in AROMA paper"
+
+    parser = ArgumentParser(description=description)
+
+    parser.add_argument(
+        '-o', '--outdir',
+        dest='outdir', required=False,
+        help='directory to save plot in (default: interactive)'
+    )
+
+    parser.add_argument(
+        '-f', '--format',
+        dest='file_format', metavar='FORMAT', required=False, default='pdf',
+        choices=['pdf', 'jpeg', 'png', 'tiff', 'svg'],
+        help='file format to save as: {%(choices)s} (default: %(default)s)'
+    )
+
+    # NB files opened for reading rather than filenames; will be closed on exit
+    parser.add_argument(
+        'infiles', metavar='FILE', nargs='+', type=FileType('r'),
+        help='classification overview text file(s) to read'
+    )
+
+    args = parser.parse_args()
+
+    #
+    # If we really need to support systems without a proper shell then we can
+    # get the input filenames as strings and apply globbing before opening eg:
+    #
+    # try:
+    #     infiles = [open(f) for f in sum(map(glob, args.infiles), [])
+    # except IOError as e:
+    #     parser.error(e)
+    # if not infiles:
+    #     parser.error('No valid input files found')
+    #
+
+    # NB file opened for writing rather than filename; will be closed on exit
+    if args.outdir is not None:
+        try:
+            suffix = '.' + args.file_format
+            outfile = open(join(args.outdir, FNAME) + suffix, 'w')
+        except IOError:
+            parser.error('Cannot write to output directory %s' % args.outdir)
+    else:
+        outfile = None
+
+    classification_plot(args.infiles, outfile, args.file_format)
