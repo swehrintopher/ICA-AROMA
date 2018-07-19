@@ -90,7 +90,7 @@ def zsums(filename, masks=(None,)):
 
 
 def cross_correlation(a, b):
-    """Cross Correlations between columns of two matrices"""
+    """Cross Correlations between columns of two matrices."""
     assert a.ndim == b.ndim == 2
     _, ncols_a = a.shape
     # nb variables in columns rather than rows hence transpose
@@ -100,6 +100,7 @@ def cross_correlation(a, b):
 
 def reg_filter(data, design, components, aggressive=False, mask=True):
     """Filter functional data by regressing out noise components.
+
        A replacement for `fsl_regfilt`.
 
     Parameters
@@ -121,8 +122,8 @@ def reg_filter(data, design, components, aggressive=False, mask=True):
     Notes
     -------
     For reasons of memory efficiency the input data array is modified in-place
-    """
 
+    """
     nt, nz, ny, nx = data.shape
     ntd, nc = design.shape
     components = sorted(set(components))
@@ -164,7 +165,7 @@ def reg_filter(data, design, components, aggressive=False, mask=True):
 
 
 def is_valid_melodic_dir(dirpath):
-    """Check for all the files needed in melodic directory"""
+    """Check for all the files needed in melodic directory."""
     return (
         dirpath and
         isdir(dirpath) and
@@ -176,7 +177,7 @@ def is_valid_melodic_dir(dirpath):
 
 
 def is_valid_feat_dir(dirpath):
-    """Check for all the files needed in feat directory"""
+    """Check for all the files needed in feat directory."""
     return (
         dirpath and
         isdir(dirpath) and
@@ -190,7 +191,7 @@ def is_valid_feat_dir(dirpath):
 
 
 def _find_aroma_dir(aromadir=None):
-    """Find location of aroma directory with mask files"""
+    """Find location of aroma directory with mask files."""
     locations = [
         '/usr/share/aroma',
         '/usr/local/share/aroma',
@@ -373,6 +374,7 @@ def feature_time_series(mix, rparams, seed=None):
     -------
     rank 1 numpy.array
         Maximum RP correlation feature scores for the components of the melodic_mix file
+
     """
     assert mix.ndim == rparams.ndim == 2
 
@@ -438,6 +440,7 @@ def feature_frequency(ftmix, t_r):
     -------
     rank 1 numpy.array
         HFC ('High-frequency content') feature scores for the components of the melodic_FTmix file
+
     """
     assert ftmix.ndim == 2
     assert 0.5 < t_r < 10
@@ -487,6 +490,7 @@ def feature_spatial(melodic_ic_file, aroma_dir=None):
     -------
     tuple (rank 1 array like, rank 1 array like)
         Edge and CSF fraction feature scores for the components of the melodic_ics_file file
+
     """
     assert isfile(melodic_ic_file)
     if aroma_dir is None:
@@ -531,6 +535,7 @@ def classification(max_rp_correl, edge_fraction, hfc, csf_fraction):
     ------
     rank 1 numpy array
         Indices of the components identified as motion components
+
     """
     assert len(max_rp_correl) == len(edge_fraction) == len(hfc) == len(csf_fraction)
 
@@ -606,7 +611,7 @@ def save_classification(outdir, max_rp_correl, edge_fraction, hfc, csf_fraction,
 
 
 def denoising(infile, outfile, mix, denoise_indices, aggressive=False):
-    """Apply ica denoising using the specified components
+    """Apply ica denoising using the specified components.
 
     Parameters
     ----------
@@ -627,6 +632,7 @@ def denoising(infile, outfile, mix, denoise_indices, aggressive=False):
     Output
     ------
     A nii.gz format file of the denoised fMRI data
+
     """
     nii = nib.load(infile)
     if len(denoise_indices) < 1:
@@ -693,13 +699,11 @@ def _valid_logging_level(arg):
     if arg.upper() in loglevels:
         return arg.upper()
     else:
-        raise argparse.ArgumentTypeError("%s is not a valid loging level" % arg)
+        raise argparse.ArgumentTypeError("%s is not a valid logging level" % arg)
 
 
 def parse_cmdline(args):
-    """Parse command line arguments.
-    """
-
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description=(
             ('ICA-AROMA %s ("ICA-based Automatic Removal Of Motion Artefacts" on fMRI data).' % __version__) +
@@ -782,8 +786,7 @@ def parse_cmdline(args):
 
 
 def feat_args(args):
-    """File and directory names to use from a feat directory.
-    """
+    """File and directory names to use from a feat directory."""
     featdir = args.featdir
     assert is_valid_feat_dir(featdir)
 
@@ -800,8 +803,7 @@ def feat_args(args):
 
 
 def nonfeat_args(args):
-    """File and directory names to use when passed explicitly.
-    """
+    """File and directory names to use when passed explicitly."""
     infile = args.infile
     mc = args.mc
     affmat = args.affmat
@@ -815,8 +817,7 @@ def nonfeat_args(args):
 
 
 def create_mask(infile, outfile, featdir=None):
-    """Create a mask.
-    """
+    """Create a mask."""
     assert isfile(infile)
     assert is_writable_file(outfile)
 
@@ -926,7 +927,6 @@ def run_aroma(infile, outdir, mask, dim, t_r, melodic_dir, affmat, warp, mc, den
 
 def main(argv=sys.argv):
     """Command line entry point."""
-
     args = parse_cmdline(argv[1:])
 
     level = getattr(logging, args.loglevel, None)
@@ -983,6 +983,7 @@ def main(argv=sys.argv):
         logging.critical('Internal Error: %s. Exiting ...' % e)
         return 1
     return 0
+
 
 if __name__ == '__main__':
     # installed as standalone script
