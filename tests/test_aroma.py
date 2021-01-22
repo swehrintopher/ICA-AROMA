@@ -551,3 +551,10 @@ def test_run_aroma():
     ), 'File %s numerical mismatch' % f
 
     shutil.rmtree(outdir)
+
+def test_noICs():
+    outdir = mkdtemp(prefix='test_noICs')
+    scores = np.loadtxt('refout/feature_scores.txt').T
+    max_rp_correl, edge_fraction, hfc, csf_fraction = scores
+    motion_ic_indices = []
+    aroma.save_classification(outdir, max_rp_correl, edge_fraction, hfc, csf_fraction, motion_ic_indices)
