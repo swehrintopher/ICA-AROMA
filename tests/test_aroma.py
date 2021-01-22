@@ -289,8 +289,14 @@ def test_save_classification():
     assert filecmp.cmp(join(outdir, 'classification_overview.txt'), 'refout/classification_overview.txt')
     shutil.rmtree(outdir)
 
+def allclose_ref(outfile, reffile):
+    """check two nifti files are close enough to equal"""
+    this = nib.load(outfile).get_data()
+    ref =  nib.load(reffile).get_data()
+    # raise Exception("%f vs ref %f" % (np.mean(this), np.mean(ref)))
+    assert np.allclose(this, ref, rtol=1e-06, atol=1e-03)
 
-def test_denoising_1():
+def test_denoising_nonagg():
     outdir = mkdtemp(prefix='test_denoising')
     outfile = join(outdir, 'nonaggr_test.nii.gz')
     denoise_indices = list(np.loadtxt('refout/classified_motion_ICs.txt', delimiter=',').astype(int) - 1)
@@ -301,15 +307,12 @@ def test_denoising_1():
         denoise_indices=denoise_indices,
         aggressive=False,
     )
-    assert np.allclose(
-        nib.load(outfile).get_data(),
-        nib.load('refout/denoised_func_data_nonaggr.nii.gz').get_data(),
-        rtol=1e-06, atol=1e-03
-    )
+
+    allclose_ref(outfile, 'refout/denoised_func_data_nonaggr.nii.gz')
     shutil.rmtree(outdir)
 
 
-def test_denoising_2():
+def test_denoising_aggr():
     outdir = mkdtemp(prefix='test_denoising')
     outfile = join(outdir, 'aggr_test.nii.gz')
     denoise_indices = list(np.loadtxt('refout/classified_motion_ICs.txt', delimiter=',').astype(int) - 1)
@@ -320,11 +323,7 @@ def test_denoising_2():
         denoise_indices=denoise_indices,
         aggressive=True,
     )
-    assert np.allclose(
-        nib.load(outfile).get_data(),
-        nib.load('refout/denoised_func_data_aggr.nii.gz').get_data(),
-        rtol=1e-06, atol=1e-03
-    )
+    allclose_ref(outfile, 'refout/denoised_func_data_aggr.nii.gz')
     shutil.rmtree(outdir)
 
 
