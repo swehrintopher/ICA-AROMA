@@ -558,3 +558,4 @@ def test_noICs():
     max_rp_correl, edge_fraction, hfc, csf_fraction = scores
     motion_ic_indices = []
     aroma.save_classification(outdir, max_rp_correl, edge_fraction, hfc, csf_fraction, motion_ic_indices)
+    shutil.rmtree(outdir)
