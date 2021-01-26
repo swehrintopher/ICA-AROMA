@@ -580,7 +580,10 @@ def save_classification(outdir, max_rp_correl, edge_fraction, hfc, csf_fraction,
     text file containing summary of classification (classification_overview.txt)
     """
     assert is_writable_directory(outdir)
-    last_ic = 0 if not motion_ic_indices else max(motion_ic_indices)
+    if motion_ic_indices is None or len(motion_ic_indices) == 0:
+        last_ic = 0
+    else:
+        last_ic = max(motion_ic_indices)
     assert last_ic < len(max_rp_correl)
     assert len(max_rp_correl) == len(edge_fraction) == len(hfc) == len(csf_fraction)
 
