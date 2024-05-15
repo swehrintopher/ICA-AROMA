@@ -1,10 +1,12 @@
 import ica_aroma
 from ica_aroma.ica_aroma import ica_aroma_cli
+from ica_aroma.classification_plots import classification_plot
 import pytest
 import os
 import re
 
 REFIN = os.path.join(os.path.dirname(__file__), "refin")
+
 
 def setup_function():
     """clear environ every test"""
@@ -34,6 +36,17 @@ def test_no_arg_usage(capsys):
 
     _, help_text = capsys.readouterr()
     assert re.match(r"usage: ", help_text)
+
+
+def test_classificaiton_plot(tmpdir):
+    """
+    implemented after pandas updates (df.append vs pd.concat) issues
+    """
+    outdir = tmpdir.mkdir('plot_out')
+    classification_plot('tests/classification_overview_043.txt', outdir)
+    dirlist = outdir.listdir()
+    assert len(dirlist) == 1
+    assert os.path.basename(dirlist[0]) == 'ICA_AROMA_component_assessment.pdf'
 
 
 @pytest.mark.skipif(not os.path.isdir(REFIN), reason="need test-data {REFIN}")
